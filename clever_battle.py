@@ -352,13 +352,10 @@ class LearningThread(QtCore.QThread):
 
     def run(self):
         logger.info("Начало обучения..")
-        for i in range(100):
-            logger.debug("Начинаю проход {}".format(i))
-            r = self.api.execute.getTrainQuestions()
-            for q in r["response"]["questions"]:
-                self._add_to_bd(q["text"], q["answers"][q["right_answer_id"]]["text"])
-                logger.debug("в бд добавлен вопрос {}".format(q["text"]))
-            logger.debug("Проход {} завершен".format(i))
+        r = self.api.execute.getTrainQuestions()
+        for q in r["response"]["questions"]:
+            self._add_to_bd(q["text"], q["answers"][q["right_answer_id"]]["text"])
+            logger.debug("в бд добавлен вопрос {}".format(q["text"]))
         logger.info("Обучение завершено")
         self.event.emit(Action("learning_end", None))
 
