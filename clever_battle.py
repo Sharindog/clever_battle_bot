@@ -13,7 +13,7 @@ from collections import namedtuple
 import requests
 
 # список токенов
-TOKEN = [""]
+TOKEN = []
 # id устройства
 DEVID = "fa39199d-63eb-44e1-9974-39cad49c4a29"
 # имя устройства
@@ -23,7 +23,7 @@ CHANN = ''
 # токен бота в телеге для логов
 TGBOT = ''
 # прокси для бота. None чтобы выключить
-PROXY = 'socks5://socksuser:8X5tjtV5ISNv2@alttg.proxy.mediatube.xyz:433'
+PROXY = None
 POSIT = '✅'
 NEGAT = '❌'
 logger = logging.getLogger("clever_battle")
@@ -394,6 +394,19 @@ class ConsoleApp(QtCore.QObject):
                 ConsoleApp.log = None
             elif arg == "--telegram":
                 tg = True
+            elif arg == "--tgtoken":
+                global TGBOT
+                TGBOT = args[i + 1]
+            elif arg == "--tgchannel":
+                global CHANN
+                CHANN = args[i + 1]
+            elif arg == "--tgproxy":
+                global PROXY
+                j = args[i + 1]
+                if j == 'disable':
+                    PROXY = None
+                else:
+                    PROXY = j
         self._init_log()
         logger.info("== STARTED ==\n\n")
         self.games = []
