@@ -4,6 +4,7 @@ import logging
 import sys
 import threading
 import traceback
+import random # модуль, отвечающий за рандомные числа
 
 from PyQt5 import QtCore
 
@@ -11,21 +12,22 @@ from utils import *
 import time
 from collections import namedtuple
 import requests
+from random import randint
 
 # список токенов
-TOKEN = []
+TOKEN = ["TOKEN"]
 # id устройства
-DEVID = "fa39199d-63eb-44e1-9974-39cad49c4a29"
+DEVID = "DEVID"
 # имя устройства
-DEVIC = "Xiaomi Redmi 5 Plus"
+DEVIC = "DEVIC"
 # канал/чат в телеге для логов, @домен или -ид
-CHANN = ''
+CHANN = 'CHANN'
 # токен бота в телеге для логов
-TGBOT = ''
+TGBOT = 'TGBOT'
 # прокси для бота. None чтобы выключить
 PROXY = None
-POSIT = '✅'
-NEGAT = '❌'
+POSIT = 'ДА'
+NEGAT = 'НЕТ'
 logger = logging.getLogger("clever_battle")
 if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
@@ -54,18 +56,18 @@ class TGThread(threading.Thread):
     def send(self, type, text):
         self.lock.acquire()
         try:
-            logger.info("sending tg to " + CHANN)
+            logger.info("Отправляю в TG канал: " + CHANN)
             r = requests.post(
                 "https://api.telegram.org/bot" + TGBOT + "/sendMessage",
                 json=dict(chat_id=CHANN, text="**Уведомление типа** #{ty}:\n{t}".format(t=text, ty=type),
                           parse_mode='markdown'),
                 proxies=({"http": PROXY, "https": PROXY} if PROXY is not None else {}))
-            logger.debug("tg response: " + str(r.json()))
+          #  logger.debug("Ответ TG: " + str(r.json()))
             r.raise_for_status()
             j = json.loads(r.text)
-            logger.info("sent to telegram")
+            logger.info("Отправлено в Telegram")
         except:
-            logger.warning("failed to send to telegram: {}".format(traceback.format_exc()))
+            logger.warning("Ошибка отправлени в TG: {}".format(traceback.format_exc()))
         self.lock.release()
 
 
@@ -107,7 +109,7 @@ class Thread(QtCore.QThread):
 
     def stop(self, rea='gently'):
         r = self._finish_game(self.cgid)
-        self._emit_and_send(Action("state", {'data': "Игра `{r.id}` завершена. Победил vk.com/{r.winner}.\n"
+        self._emit_and_send(Action("state", {'data': "Игра `{r.id}` завершена. Победил vk.com/id{r.winner}.\n"
                                                      "Клеверсов: `{r.coins}`, ставка: `{r.bet}`, вернул `{r.returned}`\n"
                                                      "Счет: `{r.score}:{r.opp_score}`\n"
                                                      "Вы выиграли: {r.bot_won}".format(r=r)}))
@@ -152,8 +154,8 @@ class Thread(QtCore.QThread):
                     ans = b
                     logger.info("Вопрос найден в базе данных, отвечаю по готовым данным")
                 else:
-                    logger.warning("Отвечаю 1 т.к. не знаю правильного ответа")
-                    ans = 1
+                    logger.warning("Правильный ответ не найден, отвечаю рандомно")
+                    ans = random.randint (1, 3)
                 if self._send_answer(game_id, q.ind, ans):
                     logger.info("Ответ отправлен: {}".format(ans))
                 state = self._start_check_polling()
@@ -167,7 +169,7 @@ class Thread(QtCore.QThread):
                                            .format(s=state, ans=ans, new=POSIT if b is None else NEGAT,
                                                    corr=POSIT if state.correct else NEGAT)}))
                 if b is None:
-                    logger.debug("Запись в бд..")
+                  #  logger.debug("Записываю новый вопрос в БД...")
                     self._add_to_bd(q.text, q.answers[state.correct_ind])
             r = self._finish_game(game_id)
             end = time.time()
@@ -228,11 +230,11 @@ class Thread(QtCore.QThread):
             if r.get("error", None) is not None:
                 if r["error"]["error_code"] == -100:
                     continue
-                logger.warning("ошибка при завершении игры: {!r}".format(r["error"]))
+                logger.warning("Ошибка при попытке завершить игру: {!r}".format(r["error"]))
                 return FinishState(-1, -1, -1, -1, -1, -1, -1, False, False)
             r = r.get("response", r)
             if not r["finish"]:
-                logger.debug("ожидание оппонента")
+                # logger.debug("Ожидание оппонента")
                 time.sleep(0.5)
                 continue
             else:
@@ -246,14 +248,14 @@ class Thread(QtCore.QThread):
             r = self.api.streamQuiz.anytimeCheckAnswer()
             # logger.debug(r)
             if r.get("error", {"error_code": -1})["error_code"] == 2203:
-                logger.debug("ожидание оппонента")
+               # logger.debug("ожидание оппонента")
                 time.sleep(0.5)
                 continue
             elif r.get("error", {"error_code": -1})["error_code"] == 2204:
-                logger.debug("оппонент вылетел")
+              #  logger.debug("оппонент вылетел")
                 return None
             elif r.get("error", {"error_code": -1})["error_code"] == 2206:
-                logger.debug("вы вылетели")
+              #  logger.debug("вы вылетели")
                 return None
             elif r.get("error", {"error_code": -1})["error_code"] == -100:
                 continue
@@ -269,14 +271,14 @@ class Thread(QtCore.QThread):
             r = self.api.streamQuiz.anytimeGetNextQuestion(is_realtime=1, game_id=id)
             # logger.debug(r)
             if r.get("error", {"error_code": -1})["error_code"] == 2203:
-                logger.debug("ожидание оппонента")
+              #  logger.debug("ожидание оппонента")
                 time.sleep(0.5)
                 continue
             elif r.get("error", {"error_code": -1})["error_code"] == 2204:
-                logger.error("у оппонента проблемы, отмена..")
+                logger.error("У оппонента возниклы проблемы, отменяю игру..")
                 return True, None
             elif r.get("error", {"error_code": -1})["error_code"] == 2206:
-                logger.debug("у вас проблемы, отмена..")
+                logger.error("у вас возникли проблемы, отменяю игру..")
                 return True, None
             elif r.get("error", {"error_code": -1})["error_code"] == -100:
                 continue
@@ -309,7 +311,7 @@ class Thread(QtCore.QThread):
             try:
                 r = self.api.execute.pollRandomGame()
             except CaptchaNeededError:
-                logger.warning("попытка обхода капчи ожиданием..")
+                logger.warning("Пытаюсь обойти капчу: метод 1 (ожидание)")
                 time.sleep(10)
                 continue
             logger.debug(r)
@@ -355,7 +357,7 @@ class LearningThread(QtCore.QThread):
         r = self.api.execute.getTrainQuestions()
         for q in r["response"]["questions"]:
             self._add_to_bd(q["text"], q["answers"][q["right_answer_id"]]["text"])
-            logger.debug("в бд добавлен вопрос {}".format(q["text"]))
+            logger.debug("В базу данных добавлен вопрос {}".format(q["text"]))
         logger.info("Обучение завершено")
         self.event.emit(Action("learning_end", None))
 
